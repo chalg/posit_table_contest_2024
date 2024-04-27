@@ -6,3 +6,5 @@ Data for this table comes from [Electricity Maps](https://app.electricitymaps.co
 -   Handle missing data - estimation models
 -   Compute CO2 emissions - Carbon intensity and emission factors
 -   Process data from collection to carbon intensity calculation.
+
+Link to my [submission](https://chalg.quarto.pub/carbon-intensity-of-electricity-consumption/)
