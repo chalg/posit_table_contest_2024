@@ -1,0 +1,4 @@
+- source: project
+  quarto-pub:
+    - id: bf5d616f-3a29-4b0a-af91-21efedd1e8f5
+      url: 'https://chalg.quarto.pub/carbon-intensity-of-electricity-consumption'

@@ -1,0 +1,5 @@
+---
+title: "About"
+---
+
+I'm Interested in macroeconomic trends, geopolitics, investing, energy, data science, [#rstats](https://twitter.com/search?q=%23rstats&src=hashtag_click) [#python](https://twitter.com/search?q=%23python&src=hashtag_click).

@@ -1,0 +1,175 @@
+---
+title: "Carbon Intensity of Electricity Consumption"
+format: html
+editor: visual
+---
+
+## Table contest submission by Grant Chalmers.
+
+Data for this table comes from [Electricity Maps](https://app.electricitymaps.com/map). This project aims to provide a free, open-source, and transparent visualisation of the carbon intensity of electricity consumption around the world. Please see [here](https://www.electricitymaps.com/methodology?utm_source=app.electricitymaps.com&utm_medium=referral#introduction) if you are interested in how Electricity Maps:
+
+-   Collect data - data sources (how they verify and collect data)
+-   Handle missing data - estimation models
+-   Compute CO2 emissions - Carbon intensity and emission factors
+-   Process data from collection to carbon intensity calculation.
+
+The Electricity Maps app is a community project and they welcome contributions from anyone!
+
+They are always looking for help to build parsers for new countries, fix broken parsers, improve the frontend app, improve accuracy of data sources, discuss new potential data sources, update region capacities, and much more. See their GitHub page [here](https://github.com/electricitymaps/electricitymaps-contrib) for further information.
+
+In my table submission, I use a similar colour scheme for carbon intensity, where greens represents relatively clean electricity consumption and browns represent higher emitting consumption. Importantly, electricity consumption takes into account imports and exports of neighbouring grids to provide a more holistic view of consumption.
+
+While the real-time nature of the Electricity Maps app is fantastic - a whole year view helps to eliminate seasonal variations that influence carbon intensity in many grids, particularly those employing a high percentage of variable renewable energy (VRE). A good example is California, which is non-trivially cleaner in the northern hemisphere summer compared to winter.
+
+![Electricity Maps screen capture focussing on western Europe at 5am.](EMs_snippet.png)
+
+Mean **Carbon Intensity** (gCO2eq/kWh) and **Power Consumption** Breakdown (%) for the year 2023.
+
+```{r}
+#| warning: false
+# Load libraries 
+library(tidyverse)
+library(gt)
+library(showtext)
+
+showtext_opts(dpi = 300)
+showtext_auto(enable = TRUE)
+
+# Fonts
+font_add_google("Fira Sans Condensed")
+font_add_google("Oswald", "oswald")
+
+# Read in data
+power_cie_prepared_tbl <- read_csv("data/power_cie_prepared_tbl.csv")
+
+# Create table
+# Note: While the carbon intensity data are freely available, the consumption
+# (Hydro to Battery Discharge columns) data requires subscription and hence I’ve
+# created a summary table instead of showing the preceding data wrangling steps.
+ciep_gt_tbl <- power_cie_prepared_tbl %>% 
+  
+  gt() %>%
+  
+  # Apply wider colour range to Carbon Intensity column to mimic source website
+  # colouring: 
+  data_color(
+    columns = `CO2 Intensity`,
+    palette = c(
+      "#00A600", "#E6E600", "#E8C32E", "#D69C4E" ,"#Dc863B", "sienna", "sienna4",
+      "tomato4", "brown"),
+    domain = c(0, 900)
+  ) %>% 
+  
+  # Apply colour range to highlight contribution of low-carbon generation to
+  # lower CO2 Intensity
+  data_color(
+    columns = Hydro:Geothermal,
+    palette = c(
+      "#00A600", "chartreuse3", "chartreuse4", "snow") %>% rev(),
+    domain = c(0, 1),
+    apply_to = "fill"
+  ) %>%
+  
+  # Apply colour range to highlight Biomass generation to mid CO2 Intensity
+  data_color(
+    columns = Biomass,
+    palette = c(
+      "snow", "#EEC900", "#E8C32E", "#D69C4E"),   #E6E600
+    domain = c(0, 0.3),
+    apply_to = "fill"
+  ) %>%
+  
+  # Apply colour range to highlight fossil fuel contribution to higher CO2 Intensity
+  data_color(
+    columns = Gas:Oil,
+    palette = c(
+      "tomato4", "sienna4", "#D69C4E", "#Dc863B", "snow") %>% rev(),
+    domain = c(0, 1),
+    apply_to = "fill"
+  ) %>%
+  
+  # Assign consistent background colour to remaining columns
+  data_color(
+    columns = Unknown:`Battery Discharge`,
+    palette = c(
+      "snow") %>% rev(),
+    domain = c(0, 1),
+    apply_to = "fill"
+  ) %>%
+  # Assign the same background to the Zone column
+  data_color(
+    columns = Zone,
+    palette = "snow",
+    apply_to = "fill"
+  ) %>%
+  
+  # Add header, source note and some styling options
+  tab_source_note(
+    md("**Table**: @GrantChalmers | **Source**: api.electricitymap.org | **Methodology**: https://www.electricitymaps.com/methodology. Emission factors used to calculate Carbon Intensity can be found on the *Carbon intensity and emission factors* tab.")
+  ) %>%
+  tab_source_note(
+    source_note = md("Some emissions factors are based on IPCC 2014 defaults, while some are based on more accurate regional factors. All zones are publicly available on the *Carbon intensity and emission factors* tab via Google docs [link](https://docs.google.com/spreadsheets/d/1ukTAD_oQKZfq-FgLpbLo_bGOv-UPTaoM_WS316xlDcE/edit?usp=sharing)")
+  ) %>%
+  tab_header(md(str_glue("2023 Mean **Carbon Intensity** (gCO2eq/kWh) and **Power Consumption** Breakdown (%)"))) %>% 
+  tab_options(
+    data_row.padding = px(1),
+    table.font.names = "Fira Sans Condensed", #Fira Sans Condensed
+    table.font.size = 12,
+    table.background.color = 'snow',
+    heading.background.color = 'antiquewhite',
+    column_labels.background.color = 'antiquewhite',
+    source_notes.background.color = 'antiquewhite',
+    source_notes.font.size = 8
+    
+  ) %>%
+  
+  tab_style_body(
+    style = cell_text(color = "grey60"),
+    values = 0
+  ) %>%
+  
+  
+  tab_style(
+    style = cell_text(
+      color = "#A9A9A9",
+      font = "oswald",
+      size  = "xx-small",
+      style = "normal"
+    ),
+    locations = cells_source_notes()
+  ) %>% 
+  
+  cols_width(
+    2:last_col() ~ px(58) 
+    
+  ) %>%
+  
+  cols_align(
+    align = "center",
+    columns = `CO2 Intensity`
+  ) %>% 
+  
+  # Convert to percentage
+  fmt_percent(
+    columns = Hydro:`Battery Discharge`,
+    decimals = 1,
+    drop_trailing_zeros = TRUE
+  ) %>% 
+  
+  fmt_number(
+    columns = `CO2 Intensity`,
+    decimals = 0,
+    drop_trailing_zeros = TRUE
+  ) %>%
+  
+  # align decimal points for easier reading
+  cols_align_decimal(
+    # Exclude CO2 Intensity
+    columns = 3:last_col()
+  ) %>% 
+  # Add border to improve aesthetic
+  opt_table_outline()
+
+# Render table
+ciep_gt_tbl
+```
